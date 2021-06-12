@@ -25,10 +25,11 @@ class VCRecord(BaseModel):
         self,
         *,
         contexts: Sequence[str],  # context is required by spec
-        types: Sequence[str],  # type is required by spec
+        expanded_types: Sequence[str],  # expanded type from contexts and types
         issuer_id: str,  # issuer ID is required by spec
         subject_ids: Sequence[str],  # one or more subject IDs may be present
         schema_ids: Sequence[str],  # one or more credential schema IDs may be present
+        proof_types: Sequence[str],  # one or more proof types may be present
         cred_value: Mapping,  # the credential value as a JSON-serializable mapping
         given_id: str = None,  # value of the credential 'id' property, if any
         cred_tags: Mapping = None,  # tags for retrieval (derived from attribute values)
@@ -37,10 +38,11 @@ class VCRecord(BaseModel):
         """Initialize some defaults on record."""
         super().__init__()
         self.contexts = set(contexts) if contexts else set()
-        self.types = set(types) if types else set()
+        self.expanded_types = set(expanded_types) if expanded_types else set()
         self.schema_ids = set(schema_ids) if schema_ids else set()
         self.issuer_id = issuer_id
         self.subject_ids = set(subject_ids) if subject_ids else set()
+        self.proof_types = set(proof_types) if proof_types else set()
         self.cred_value = cred_value
         self.given_id = given_id
         self.cred_tags = cred_tags or {}
@@ -71,10 +73,11 @@ class VCRecord(BaseModel):
             return False
         return (
             other.contexts == self.contexts
-            and other.types == self.types
+            and other.expanded_types == self.expanded_types
             and other.subject_ids == self.subject_ids
             and other.schema_ids == self.schema_ids
             and other.issuer_id == self.issuer_id
+            and other.proof_types == self.proof_types
             and other.given_id == self.given_id
             and other.record_id == self.record_id
             and other.cred_tags == self.cred_tags
@@ -92,10 +95,10 @@ class VCRecordSchema(BaseModelSchema):
         unknown = EXCLUDE
 
     contexts = fields.List(fields.Str(description="Context", **ENDPOINT))
-    types = fields.List(
+    expanded_types = fields.List(
         fields.Str(
-            description="Type",
-            example="VerifiableCredential",
+            description="JSON-LD expanded type extracted from type and context",
+            example="https://w3id.org/citizenship#PermanentResidentCard",
         ),
     )
     schema_ids = fields.List(
@@ -114,6 +117,12 @@ class VCRecordSchema(BaseModelSchema):
             example="did:example:ebfeb1f712ebc6f1c276e12ec21",
         )
     )
+    proof_types = fields.List(
+        fields.Str(
+            description="Signature suite used for proof", example="Ed25519Signature2018"
+        )
+    )
+
     cred_value = fields.Dict(description="(JSON-serializable) credential value")
     given_id = fields.Str(
         description="Credential identifier",

@@ -1,16 +1,13 @@
 """A presentation proposal content message."""
 
+from marshmallow import EXCLUDE, fields, validates_schema, ValidationError
 from typing import Sequence
-
-from marshmallow import EXCLUDE, fields, RAISE, validates_schema, ValidationError
 
 from .....messaging.agent_message import AgentMessage, AgentMessageSchema
 from .....messaging.decorators.attach_decorator import (
     AttachDecorator,
     AttachDecoratorSchema,
 )
-
-from ...indy.proof_request import IndyProofRequestSchema
 
 from ..message_types import PRES_20_PROPOSAL, PROTOCOL_PACKAGE
 
@@ -121,5 +118,7 @@ class V20PresProposalSchema(AgentMessageSchema):
 
         for fmt in formats:
             atch = get_attach_by_id(fmt.attach_id)
-            if V20PresFormat.Format.get(fmt.format) is V20PresFormat.Format.INDY:
-                IndyProofRequestSchema(unknown=RAISE).load(atch.content)
+            pres_format = V20PresFormat.Format.get(fmt.format)
+
+            if pres_format:
+                pres_format.validate_fields(PRES_20_PROPOSAL, atch.content)
